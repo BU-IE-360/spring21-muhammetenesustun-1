@@ -1,0 +1,136 @@
+---
+title: "Number of Russian Tourists visited Turkey vs. CPI and Exchange Rates of Ruble and Lira"
+author: "Muhammet Enes Üstün - IE360 - Spring 2021"
+date: "15.04.2021"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+
+```{r echo=FALSE, results="hide"}
+library(openxlsx)
+library(ggplot2)
+library(ggcorrplot)
+library(car)
+```
+
+---
+
+In this homework, I have tried to find an answer to the question "Are number of Russian Tourists related to Consumer Price Index, Exchange Rates USD/TL and RUB/TL. The statistics are gathered from CBRT's Electronic Data Delivery System. The observations are sampled monthly. 36 months of data is used corresponding to 01/2017 - 12/2019. Also data of average daily search number of "Antalya" word from Russia region was gathered from Google Trends.
+      
+---      
+      
+```{r}
+exportdata=read.xlsx("RUS_DATA.xlsx",sheet='EVDS')
+```
+      
+    
+---      
+
+```{r}
+ggplot(exportdata, aes(Month, Tourists))+geom_line(col="blue", size=2) + geom_smooth(method = "lm")
+```
+
+When I plot the number of tourists, it can be observed that line is cylic and increases at summer seasons and decreases on winters. Overall level of number is increasing from 2017 to 2019. One answer can be that Russian tourists prefer to have a vacation in Turkey in summers because Turkey has coasts at Mediterranian unlike Russia.
+      
+---      
+      
+```{r}
+ggplot(exportdata, aes(Month, US_TL))+geom_line(col="black", size=2) + geom_smooth(method = "lm")
+ggplot(exportdata, aes(Month, PriceIndex))+geom_line(col="red", size=2) + geom_smooth(method = "lm")
+ggplot(exportdata, aes(Month, RUB_TL))+geom_line(col="green", size=2) + geom_smooth(method = "lm")
+```
+
+
+Turkish Lira follows very similar paths with respect to US Dollars and Russian Rubles. It loses its value day after day. Likewise, Consumer Price Index is increasing very similar to CPI. USD/TL, RUB/TL and CPI has increasing trend at almost every month whereas Number of Tourists has cyclic within a year. However, the average number is increasing by years as well. At month 20, there is severe jump which corresponds to August 2018. At that date US Dollar / Turkish Lira broke its own record with 6.80 as of 10 Aug 2018.
+       
+---
+
+## Number of Tourists from Russia vs. Search of Antalya from Russia
+
+```{r}
+ggplot(exportdata, aes(Month, AvgDailySearch))+geom_line(col="purple", size=2) + geom_smooth(method = "lm")
+```
+   
+Here is the average daily search of the word "Antalya" from Russia Federation in the period of 01.2017 - 12.2019. I pick this word because Antalya is the first preference of Russian tourists in Turkey. It follows an increasing trend with yearly similar fluctuations.
+
+---
+
+
+```{r}
+ggplot(exportdata,aes(Month,Tourists/10000))+geom_line(color="blue", size=2)+geom_line(aes(Month,AvgDailySearch),color="purple",size=2)+ylab("Number of Tourists/10000 and Avg. Daily Search")
+
+```
+      
+What happens in number of tourists, it is also happening in the search of word "Antalya from Russia region. Both number of Russian tourists and "Antalya" searches highly correlated and follow an increasing trend with yearly fluctuations.
+
+---
+
+
+```{r}
+scatterplot(Tourists ~ AvgDailySearch, data = exportdata)
+```
+
+
+
+Here is the scatter plot of number of tourists and search trends. Somehow linear relation can be observed.
+
+---
+
+```{r}
+correl_info=cor(exportdata)
+ggcorrplot(correl_info, 
+           hc.order = TRUE, 
+           type = "lower",
+           lab = TRUE)
+```
+
+
+Here is the correlation between variables. USD/TL, RUB/TL and CPI are somehow related to Number of Russian Tourists visited Turkey. I was expecting that CPI is negatively correlated with Tourist number but it has least correlation with Tourists. Also average daily search of the word "Antalya" is highly positively correlated with number of tourists.
+
+---
+
+## References and Notes
+
+1. [Google Trend Data of "Antalya" Searches](https://trends.google.com/trends/explore?date=2017-01-01%202019-12-31&geo=RU&q=antalya)
+
+AvgDailySearch -> Average daily search of "Antalya" word from Russia region in terms of months between 01.2017-12.2019
+
+2. [EVDS Page of CBRT'S Website](https://evds2.tcmb.gov.tr/index.php?/evds/serieMarket)
+
+### Series Description
+
+Tourists -> TP.ODEMGZS.RUSYA	  Milliyetlere Göre Ziyaretçi Sayısı__RUSYA-Düzey	Gözlem Değeri: Kümülatif
+
+US_TL -> TP.DK.USD.A.YTL	(USD) ABD Doları (Döviz Alış)-Düzey	Gözlem Değeri: Orijinal Gözlem
+
+RUB_TL -> TP.DK.RUB.A.YTL	(RUB) Rus Rublesi (Döviz Alış)-Düzey	Gözlem Değeri: Orijinal Gözlem
+
+PriceIndex -> TP.FG.J0	0.GENEL-Düzey	Gözlem Değeri: Orijinal Gözlem
+		
+### Notes		
+TP.ODEMGZS.RUSYA	Data Source	MINISTRY OF CULTURE AND TOURISM
+
+[Uygulama Değişiklik Linki](http://www.tcmb.gov.tr/wps/wcm/connect/TR/TCMB+TR/Main+Menu/Istatistikler/Odemeler+Dengesi+ve+Ilgili+Istatistikler/Odemeler+Dengesi+Istatistikleri/Uygulama+Test/) 
+  
+[Veri Yayınlama Takvim Linki](http://www3.tcmb.gov.tr/veriyaytakvim/takvim.php)
+	
+[Metaveri Linki](http://www.tcmb.gov.tr/wps/wcm/connect/0ab87526-c290-4bdd-94d4-b8e99e70eba9/BOPMetaveri.pdf?MOD=AJPERES&CACHEID=ROOTWORKSPACE-0ab87526-c290-4bdd-94d4-b8e99e70eba9-mcFYR7h)
+	
+[Revizyon Politika Linki](http://www.tcmb.gov.tr/wps/wcm/connect/6f18f19b-17c7-43cb-8c80-55b5fb4c67f4/RevizyonPolitikas%C4%B1.pdf?MOD=AJPERES&CACHEID=ROOTWORKSPACE-6f18f19b-17c7-43cb-8c80-55b5fb4c67f4-m5h8na2)
+	
+TP.DK.USD.A.YTL	Data Source	CBRT
+
+TP.DK.RUB.A.YTL	Data Source	CBRT
+
+TP.FG.J0	Data Source	TURKISH STATISTICAL INSTITUTE
+
+[Uygulama Değişiklik Linki](http://www.tuik.gov.tr/PreTablo.do?alt_id=114)
+  
+[Veri Yayınlama Takvim Linki](http://www.tuik.gov.tr/takvim/tkvim.zul#tb1)
+	
+[Metaveri Linki](http://www.tuik.gov.tr/PreTablo.do?alt_id=114)
+	
+[Revizyon Politika Linki](http://www.tuik.gov.tr/PreTablo.do?alt_id=114)
+

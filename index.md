@@ -6,4 +6,4 @@
 
 ## Homework 1 (April 15)
 
-[Here](files/HW1.html) is my homework 1.
+[Here](files/HW1/HW1.html) is my homework 1.
