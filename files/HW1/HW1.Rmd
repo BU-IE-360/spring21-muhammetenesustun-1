@@ -1,5 +1,5 @@
 ---
-title: "Number of Russian Tourists visited Turkey vs. CPI and Exchange Rates of Ruble and Lira"
+title: "Are number of Russian Tourists related to CPI, Exchange Rates USD/TL and RUB/TL?"
 author: "Muhammet Enes Üstün - IE360 - Spring 2021"
 date: "15.04.2021"
 output:
@@ -8,7 +8,7 @@ output:
 ---
 
 
-```{r echo=FALSE, results="hide"}
+```{r echo=FALSE,warning=FALSE}
 library(openxlsx)
 library(ggplot2)
 library(ggcorrplot)
@@ -17,7 +17,7 @@ library(car)
 
 ---
 
-In this homework, I have tried to find an answer to the question "Are number of Russian Tourists related to Consumer Price Index, Exchange Rates USD/TL and RUB/TL. The statistics are gathered from CBRT's Electronic Data Delivery System. The observations are sampled monthly. 36 months of data is used corresponding to 01/2017 - 12/2019. Also data of average daily search number of "Antalya" word from Russia region was gathered from Google Trends.
+In this homework, I have tried to find an answer to the question "Are number of Russian Tourists related to Consumer Price Index, Exchange Rates USD/TL and RUB/TL. The statistics are gathered from CBRT's Electronic Data Delivery System. The observations are sampled monthly. 36 months of data is used corresponding to 01/2017 - 12/2019. Also data of average daily search number of "Antalya" word from Russia region and "Dolar kaç TL?" from Turkey region was gathered from Google Trends.
       
 ---      
       
@@ -25,10 +25,13 @@ In this homework, I have tried to find an answer to the question "Are number of 
 exportdata=read.xlsx("RUS_DATA.xlsx",sheet='EVDS')
 ```
       
-    
+---
+
+# PART A   
+
 ---      
 
-```{r}
+```{r, warning=FALSE}
 ggplot(exportdata, aes(Month, Tourists))+geom_line(col="blue", size=2) + geom_smooth(method = "lm")
 ```
 
@@ -38,8 +41,9 @@ When I plot the number of tourists, it can be observed that line is cylic and in
       
 ```{r}
 ggplot(exportdata, aes(Month, US_TL))+geom_line(col="black", size=2) + geom_smooth(method = "lm")
-ggplot(exportdata, aes(Month, PriceIndex))+geom_line(col="red", size=2) + geom_smooth(method = "lm")
 ggplot(exportdata, aes(Month, RUB_TL))+geom_line(col="green", size=2) + geom_smooth(method = "lm")
+ggplot(exportdata, aes(Month, PriceIndex))+geom_line(col="red", size=2) + geom_smooth(method = "lm")+ylab("CPI (Consumer Price Index)")
+
 ```
 
 
@@ -47,10 +51,12 @@ Turkish Lira follows very similar paths with respect to US Dollars and Russian R
        
 ---
 
+# PART B
+
 ## Number of Tourists from Russia vs. Search of Antalya from Russia
 
 ```{r}
-ggplot(exportdata, aes(Month, AvgDailySearch))+geom_line(col="purple", size=2) + geom_smooth(method = "lm")
+ggplot(exportdata, aes(Month, AntalyaSearch))+geom_line(col="purple", size=2) + geom_smooth(method = "lm")
 ```
    
 Here is the average daily search of the word "Antalya" from Russia Federation in the period of 01.2017 - 12.2019. I pick this word because Antalya is the first preference of Russian tourists in Turkey. It follows an increasing trend with yearly similar fluctuations.
@@ -59,8 +65,7 @@ Here is the average daily search of the word "Antalya" from Russia Federation in
 
 
 ```{r}
-ggplot(exportdata,aes(Month,Tourists/10000))+geom_line(color="blue", size=2)+geom_line(aes(Month,AvgDailySearch),color="purple",size=2)+ylab("Number of Tourists/10000 and Avg. Daily Search")
-
+ggplot(exportdata,aes(Month,Tourists/10000))+geom_line(color="blue", size=2)+geom_line(aes(Month,AntalyaSearch),color="purple",size=2)+labs(y="Number of Tourists/10000 and Antalya Search")
 ```
       
 What happens in number of tourists, it is also happening in the search of word "Antalya from Russia region. Both number of Russian tourists and "Antalya" searches highly correlated and follow an increasing trend with yearly fluctuations.
@@ -69,14 +74,28 @@ What happens in number of tourists, it is also happening in the search of word "
 
 
 ```{r}
-scatterplot(Tourists ~ AvgDailySearch, data = exportdata)
+scatterplot(Tourists ~ AntalyaSearch, data = exportdata)
 ```
-
 
 
 Here is the scatter plot of number of tourists and search trends. Somehow linear relation can be observed.
 
 ---
+
+## USD/TL Exchange Rate vs. Search of 'Dolar kaç TL?' from Turkey
+
+```{r}
+ggplot(exportdata, aes(Month, DollarSearch))+geom_line(col="orange", size=2) + geom_smooth(method = "lm")+ylab("'Dolar kaç TL?' Searches")
+```
+
+What here is the average daily search of "Dolar kaç TL?" from Turkey in the monthly period of 01.2017 - 12.2019.
+
+```{r}
+ggplot(exportdata,aes(Month,US_TL*5))+geom_line(color="black", size=2)+geom_line(aes(Month,DollarSearch),color="orange",size=2)+ylab("(USD/TL Rate*5) and 'Dolar kaç TL?' Search")+ scale_color_discrete(name = "Y series", labels = c("Y2", "Y1"))
+
+```
+
+This plot explains the behavior at Aug 2018 which USD/TL broke its own record. Average daily search of "Dolar kaç TL?" is very high at that month.
 
 ```{r}
 correl_info=cor(exportdata)
@@ -87,7 +106,7 @@ ggcorrplot(correl_info,
 ```
 
 
-Here is the correlation between variables. USD/TL, RUB/TL and CPI are somehow related to Number of Russian Tourists visited Turkey. I was expecting that CPI is negatively correlated with Tourist number but it has least correlation with Tourists. Also average daily search of the word "Antalya" is highly positively correlated with number of tourists.
+Here is the correlation between variables. USD/TL, RUB/TL and CPI are somehow related to Number of Russian Tourists visited Turkey. I was expecting that CPI is negatively correlated with Tourist number but it has least correlation with Tourists. Average daily search of the word "Antalya" is highly positively correlated with number of tourists. Also average daily search of "Dolar kaç TL?" is positively correlated with USD/TL exchange rate.
 
 ---
 
@@ -95,9 +114,13 @@ Here is the correlation between variables. USD/TL, RUB/TL and CPI are somehow re
 
 1. [Google Trend Data of "Antalya" Searches](https://trends.google.com/trends/explore?date=2017-01-01%202019-12-31&geo=RU&q=antalya)
 
-AvgDailySearch -> Average daily search of "Antalya" word from Russia region in terms of months between 01.2017-12.2019
+AntalyaSearch -> Average daily search of "Antalya" word from Russia region in terms of months between 01.2017-12.2019
 
-2. [EVDS Page of CBRT'S Website](https://evds2.tcmb.gov.tr/index.php?/evds/serieMarket)
+2. [Google Trend Data of "Dolar kaç TL?" Searches](https://trends.google.com/trends/explore?date=2017-01-01%202019-12-31&geo=TR&q=dolar%20ka%C3%A7%20tl)
+
+DollarSearch -> Average daily search of "Dolar kaç TL?" from Turkey region in terms of months between 01.2017-12.2019
+
+3. [EVDS Page of CBRT'S Website](https://evds2.tcmb.gov.tr/index.php?/evds/serieMarket)
 
 ### Series Description
 
