@@ -174,29 +174,30 @@ ggplot(data ,aes(x=Date)) + geom_line(aes(y=CPI_ALC_TOB, color='Actual')) + geom
   
 ## Forecasting
 
+  Forecast April 2021 value.
+
 ```{r}
-data=rbind(data, data.table(Date = as.Date("2021-04-01")),fill=T )
+data=rbind(data, data.table(Date = as.Date("2021-04-01")),fill=TRUE )
 predict(data$Lagged)
-data[is.na(Lagged)==T, Lagged:= -0.0001837901]
-
+data$Lagged[112]=-0.0001837901
 predict(data$Int_Rate)
-data[is.na(Int_Rate)==T, Int_Rate:= 22.75589]
-
+data$Int_Rate[112]=22.75589
 predict(data$USD_TL)
-data[is.na(USD_TL)==T, USD_TL:=7.694781]
+data$USD_TL[112]=7.694781
 
 data$trend <- 1:nrow(data)
 model0=lm(CPI_ALC_TOB~trend,data)
 data[,trendvar:=predict(model0,data)]
-data[is.na(Fitted1)==T, Fitted1:=predict(finalmodel, data[is.na(Fitted1)])]
+
+exp(predict(finalmodel, data[is.na(CPI_ALC_TOB) == TRUE]))
 ```
 
-  We should not forget that we have taken the logarithm of CPI. Again we take exponential of it, plot the graph and forecast April 2021 value.
+  We should not forget that we have taken the logarithm of CPI. Again we take exponential of it, and plot the graph.
 
 ```{r}
+data[,Fitted1:=predict(finalmodel,data)]
 data$CPI_ALC_TOB <- exp(data$CPI_ALC_TOB)
 data$predictnewdata <- exp(data$Fitted1)
-data$predictnewdata[112]
 cols <- c("Predicted" = "black", "Actual" = "blue")
 ggplot() + geom_line(data = data, aes(x = Date, y = predictnewdata, color = "Predicted",)) + geom_line(data = data, aes(x = Date, y = CPI_ALC_TOB, color = "Actual")) + xlab('Time (Years)') + ylab('CPI For Alcoholic Bev. and Tobacco') + labs(title="Actual vs. Predicted Values of CPI for Alcoholic Beverages and Tobacco") + scale_color_manual(values = cols)
 
