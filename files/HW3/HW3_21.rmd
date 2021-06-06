@@ -1,0 +1,283 @@
+---
+title: "Forecasting Turkey's Daily Electricity Consumption"
+author: "Muhammet Enes Üstün"
+date: "06 06 2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  message = FALSE,
+	warning = FALSE)
+```
+
+
+---
+
+
+# Introduction
+
+  The aim of this study is to understand the properties of the electricity consumption data of Turkey between 01.01.2016 to 20.05.2021, to build and compare alternative forecasting approaches, and forecast the electricity consumption of next 14 days. Firstly we will analyze time series and discuss its features. Then we will stationarize the time series and construct alternative models (AR, MA, ARIMA). With constructed model, we will predict the consumption. Finally, daily bias, mean absolute percentage error (MAPE) and weighted mean absolute percentage error (WMAPE) will be calculated.
+
+---
+
+  
+  Required packages and libraries are used. These will be help us for visualization, manipulation of data and forecasting opartions.
+
+```{r}
+library(ggplot2)
+library(fpp)
+library(data.table)
+library(readxl)
+library(forecast)
+library(lubridate)
+require(urca)
+```
+
+
+---
+
+  Gathered data from Transparency Platform of EPIAS is read and data table is constructed.
+
+
+```{r}
+data = read_excel("/Users/Enes Üstün/Desktop/DATAEPIAS.xlsx")
+data = as.data.table(data)
+is.data.table(data)
+head(data)
+data$Consumption=as.numeric(data$Consumption)
+Consumption=data$Consumption
+
+summary(data)
+```
+
+---
+
+  Let's graph the whole data in order to visualize trend, seasonalities. Checking auto correlations between lags. This will help us for constructing an appropriate models. Also, to determine if data is stationary or not, we use KPSS test.
+
+```{r}
+ggplot(data, aes(x=Date,y=Consumption)) + geom_line(col = "light blue") +
+  labs(title = "Turkey's Hourly Electricity Consumption (in MWh's) between 01.01.2016 - 20.05.2021") 
+
+acf(Consumption, lag.max = 24, main = " ACF Graph of Consumption Data with Lag = 24 ")
+pacf(Consumption, lag.max = 24,  main = " PACF Graph of Consumption Data with Lag = 24 ")
+
+stationary=ur.kpss(data$Consumption)
+summary(stationary)
+```
+
+As expected, data is not stationary and there are severe autocorrelations. Consumption data may contain hourly and daily correlations according to shift times or work days. It can be also seen that data traces similar patterns every year. Increase in usage of air conditioners can increase the consumption. Now, let's decompose the series with different levels (hourly, daily, weekly, monthly and etc.)  to determine such seasonalities. We will start with 24 to determine if there is hourly seasonality.
+
+---
+
+## Decomposing
+
+```{r}
+Consumption24=ts(data$Consumption,freq=24)
+Decomposed24=decompose(Consumption24, type="additive")
+plot(Decomposed24)
+```
+
+Because data contains many year's hourly consumption. 24 is somehow small to obtain a trend line without seasonality. However random component which is detrended and deseasonalized from actual data looks stationary despite one outlier.
+
+```{r}
+Consumption168=ts(data$Consumption,freq=168)
+Decomposed168=decompose(Consumption168, type="additive")
+plot(Decomposed168)
+
+```
+
+Now with 168, we assume seasonality stems from both the hour of the day and day of the week and this is what I said above. We will use this seasonality to obtain a forecasting model. Also, random component which is detrended and deseasonalized from actual data looks again stationary despite one outlier.
+
+
+```{r}
+Consumption8736=ts(data$Consumption,freq=8736)
+Decomposed8736=decompose(Consumption8736, type="additive")
+plot(Decomposed8736)
+```
+
+When we look at 8736 which is "24*7*52" shows yearly frequency. It contains hourly, daily and weekly seasonalities. Trend variable looks more accurate and somehow has upward slope. In the year 2020, there was COVID-19 outbreak and it can be easily seen that pandemic severely decreased the consumption in 2020. 
+
+From now on, we use 168-hours decomposed data. Let's make easy to manipulate and chech the stationarity of the random component. 
+
+```{r}
+Trend=Decomposed168$trend
+Seasonal=Decomposed168$seasonal
+Random=Decomposed168$random
+
+stationaritytest=ur.kpss(Random)
+summary(stationaritytest)
+```
+
+It can be seen that our data is stationary now (Test statistic is low). Let's check Auto Correlations and Partial Autocorrelations to make decision of which model we will use.
+
+```{r}
+acf(Random, lag.max = 168, na.action = na.pass,  main = " ACF Graph of Deseasonalized and Detrended Data (freq=168) ")
+pacf(Random, lag.max = 168, na.action = na.pass,  main = " ACF Graph of Deseasonalized and Detrended Data (freq=168) ")
+```
+
+ACF plot is decreasing exponentially and there is a spike at lag 2. So, we start with an Auto Regressive model which has p value of 2. Then we will try some other models and compare.
+
+## Building Models
+
+```{r}
+AR1=arima(Random, order=c(2,0,0))
+AIC(AR1)
+
+AR2=arima(Random, order=c(1,0,0))
+AIC(AR2)
+
+AR3=arima(Random, order=c(3,0,0))
+AIC(AR3)
+
+AR4=arima(Random, order=c(4,0,0))
+AIC(AR4)
+
+AR5=arima(Random, order=c(5,0,0))
+AIC(AR5)
+
+```
+
+After checking the AIC's of the selected model and other options, we can select AR5 which has minimum value of AIC = 722855.1. Now, we can try some Moving Average models starting with MA(0,0,1).
+
+```{r}
+
+MA1=arima(Random, order=c(0,0,1))
+AIC(MA1)
+
+MA2=arima(Random, order=c(0,0,2))
+AIC(MA2)
+
+MA3=arima(Random, order=c(0,0,3))
+AIC(MA3)
+
+MA4=arima(Random, order=c(0,0,4))
+AIC(MA4)
+
+MA5=arima(Random, order=c(0,0,5))
+AIC(MA5)
+
+```
+
+Trying different MA's yields MA5 is the best model because it has the lowest AIC value which is 725530.1. Here, there is a behavior that as "q" increases, AIC decreases. However, in order to prevent such complexity we stop and pick MA5. Let's combine AR and MA models that have lowest AIC (4,0,5) and (5,0,5).
+
+```{r}
+ARIMA1=arima(Random, order=c(4,0,5))
+AIC(ARIMA1)
+
+ARIMA2=arima(Random, order=c(5,0,5))
+AIC(ARIMA2)
+```
+
+ARIMA2(5,0,5) has slightly less value. Let's check residuals first and make forecasts with that. Because we pick freq=168, we don't have random component values at 84 of the observations. We can forecast for 420 step ahead (14*24 + 84 hours).
+
+---
+
+## Forecasting
+
+```{r}
+
+checkresiduals(ARIMA2)
+
+fitted= Random - ARIMA2$residuals
+transformed_fitted = fitted + Trend + Seasonal
+
+forecast = predict(ARIMA2, n.ahead = 420)$pred
+forecast_ts = ts(forecast, frequency = 168, start=c(279,85))
+
+plot1=transformed_fitted[46500:47208]
+
+plot(Consumption168[46500:47208], type = "line", col= "black", main = "Actual vs. Predicted Values of Turkey's Electricity Consumption", ylab = "Consumption in MWh", xlab = "Hours")
+points(plot1, type = "line", col = "blue")
+
+
+```
+
+As seen above, 
+
+Using last trend and seasonality variables, forecasted values are generated and transformed to original structure. 
+
+```{r}
+
+Trend1 = tail(Trend[!is.na(Trend)],1)
+tail(Seasonal,1)
+Seasonal1 = Seasonal[1:420]
+forecast1 = forecast_ts + Trend1 + Seasonal1
+
+
+plot(Consumption168, type= "line", ylab = "Consumption in MWh ", xlab = "Hours", main="Actual vs 14 Days Forecasted Values of Turkey's Elec. Cons.", xlim=c(279,283))
+points(forecast1, type = "line", col = "orange", width="1")
+
+
+```
+
+Actual data and errors stem from forecast was obtained for each of the hours in the forecasting period (14 days).
+
+---
+
+## Calculating Errors
+
+```{r}
+
+actualdata = Consumption[46873:47208]
+error = actualdata - forecast1[85:420]
+
+```
+
+Errors are converted to daily manner. Also, actual data is converted to daily data. Thus, we can calculate daily bias for every day and also mean absolute percentage errors.
+
+```{r}
+daily_error=0
+
+j=1
+  for(i in 1:336){
+  
+  daily_error[j] = sum(error[i:24*j])
+  i=i+24
+  j=j+1
+  }
+
+
+actualdata_daily=0
+
+j=1
+for(i in 1:336){
+  
+  actualdata_daily[j] = sum(actualdata[i:24*j])
+  i=i+24
+  j=j+1
+}
+
+
+```
+
+Let's calculate daily bias, MAPE and WMAPE.
+
+```{r}
+
+
+actualdata_daily[1:14]
+
+
+abs(daily_error[1:14])
+
+MAPE = abs(daily_error[1:14])*100/actualdata_daily[1:14]
+MAPE
+
+WMAPE = sum(abs(daily_error[1:14]*100/sum(actualdata_daily[1:14])))
+WMAPE
+
+```
+
+# Conclusion
+
+Finally, we have obtained daily bias between 7544.430 to 64017.312 least to biggest, and with absolute values. Also, Mean Absolute Percentage Error for each day (between 07.05.2021-20.05.2021) 1.13% to 11.6 %. WMAPE is obtained as 5.37%. 
+
+To sum up all, first we visualize data and search an appropriate seasonality. Then data was decomposed at weekly level. After that, by checking ACF's and PACF's, and trying different model alternatives, we have built a model which is ARIMA(5,0,5). Then we predict 14 days hourly consumption, calculate errors and conclude. 
+
+
+
+
+
+
+
