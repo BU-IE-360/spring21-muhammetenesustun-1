@@ -11,3 +11,7 @@
 ## Homework 2 (May 7)
 
 [Here](files/HW2/HW2_21.html) is my homework 2.
+
+## Homework 3 (June 6)
+
+[Here](files/HW3/HW3_21.html) is my homework 3.
