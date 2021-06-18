@@ -2,7 +2,7 @@
 
 ## Homework 0 (March 28)
 
-[Here](files/IE360_Spring21_Homework0.html) is my 5 interesting R examples.
+[Here](files/HW0/IE360_Spring21_Homework0.html) is my 5 interesting R examples.
 
 ## Homework 1 (April 15)
 
