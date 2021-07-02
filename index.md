@@ -22,4 +22,4 @@
 
 ## Project (July 2)
 
-[Here](files/Project - Group 12/ProjectReport.html) is our Project Report for Group 12.
+[Here](files/Project - Group12/ProjectReport.html) is our Project Report for Group 12.
