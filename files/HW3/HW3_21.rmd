@@ -41,7 +41,7 @@ require(urca)
 
 
 ```{r}
-data = read_excel("/Users/Enes Üstün/Desktop/DATAEPIAS.xlsx")
+data = read_excel("/Users/muhammetenesustun/Files/GitHub/spring21-muhammetenesustun-1/files/HW3/DATAEPIAS.xlsx")
 data = as.data.table(data)
 is.data.table(data)
 head(data)
